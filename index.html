@@ -203,5 +203,91 @@ u.rate=.85;speechSynthesis.speak(u)
 function closeActivity(){$('activity').classList.add('hide')}
 refresh();
 </script>
+  
+<style>
+body {
+  padding-bottom: 100px;
+}
+
+.app-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-around;
+  background: rgba(255,255,255,.96);
+  backdrop-filter: blur(15px);
+  border-top: 1px solid #e6dfff;
+  padding: 10px 5px max(10px, env(safe-area-inset-bottom));
+  z-index: 100;
+}
+
+.app-nav button {
+  background: transparent;
+  color: #756a97;
+  font-size: 12px;
+  padding: 8px;
+  border-radius: 14px;
+}
+
+.app-nav button span {
+  display: block;
+  font-size: 25px;
+  margin-bottom: 4px;
+}
+
+.app-nav button.active {
+  color: #7046e8;
+  background: #eee8ff;
+}
+</style>
+
+<nav class="app-nav" aria-label="App navigation">
+  <button class="active" onclick="navigateApp('home',this)">
+    <span>🏠</span>Home
+  </button>
+
+  <button onclick="navigateApp('journey',this)">
+    <span>🗺️</span>Journey
+  </button>
+
+  <button onclick="navigateApp('cards',this)">
+    <span>🃏</span>Cards
+  </button>
+
+  <button onclick="navigateApp('rewards',this)">
+    <span>🏆</span>Rewards
+  </button>
+</nav>
+
+<script>
+function navigateApp(page, button) {
+  document.querySelectorAll('.app-nav button')
+    .forEach(b => b.classList.remove('active'));
+
+  button.classList.add('active');
+
+  if (page === 'cards') {
+    start('flash');
+    return;
+  }
+
+  if (page === 'journey') {
+    document.querySelector('.actions')
+      .scrollIntoView({behavior:'smooth'});
+    return;
+  }
+
+  if (page === 'rewards') {
+    document.getElementById('badges')
+      .scrollIntoView({behavior:'smooth'});
+    return;
+  }
+
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+</script>
+
 </body>
 </html>
