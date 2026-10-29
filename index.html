@@ -289,5 +289,403 @@ function navigateApp(page, button) {
 }
 </script>
 
+<!-- LinguaQuest accounts and cloud progress -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<style>
+.lq-account-bar {
+  max-width:720px;
+  margin:12px auto;
+  padding:0 16px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+}
+.lq-account-bar button {
+  background:#fff;
+  color:#6440c9;
+  border:1px solid #ded4fa;
+}
+.lq-account-bar span {
+  font-size:13px;
+  color:#655b85;
+  overflow-wrap:anywhere;
+}
+.lq-auth-backdrop {
+  position:fixed;
+  inset:0;
+  background:#19112b99;
+  z-index:500;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.lq-auth-backdrop.open {display:flex}
+.lq-auth-card {
+  background:#fff;
+  border-radius:26px;
+  padding:24px;
+  width:100%;
+  max-width:390px;
+  max-height:90vh;
+  overflow:auto;
+  box-shadow:0 20px 60px #140b4a40;
+}
+.lq-auth-card h2 {color:#37216f}
+.lq-auth-card input {
+  width:100%;
+  padding:14px;
+  border:1px solid #dcd3f3;
+  border-radius:13px;
+  font:inherit;
+  margin:6px 0;
+}
+.lq-auth-card button {margin-top:10px}
+.lq-auth-card .primary {width:100%}
+.lq-auth-message {
+  font-size:14px;
+  color:#59468a;
+  white-space:pre-wrap;
+}
+</style>
+
+<div class="lq-account-bar">
+  <span id="lq-user-label">☁️ Progress saved on this device</span>
+  <button id="lq-account-button" onclick="lqOpenAuth()">
+    🔐 Log in / Sign up
+  </button>
+</div>
+
+<div id="lq-auth-modal" class="lq-auth-backdrop">
+  <div class="lq-auth-card" role="dialog"
+       aria-modal="true" aria-labelledby="lq-auth-title">
+    <div class="row">
+      <h2 id="lq-auth-title">🌍 Welcome back!</h2>
+      <button class="secondary" onclick="lqCloseAuth()"
+              aria-label="Close">✕</button>
+    </div>
+    <p class="muted">Save your language adventure in the cloud.</p>
+
+    <form id="lq-auth-form">
+      <input id="lq-email" type="email"
+             placeholder="Email address"
+             autocomplete="email" required>
+      <input id="lq-password" type="password"
+             placeholder="Password (at least 6 characters)"
+             autocomplete="current-password"
+             minlength="6" required>
+      <button class="primary" id="lq-submit"
+              type="submit">Log in</button>
+    </form>
+
+    <button class="secondary" id="lq-switch"
+            onclick="lqSwitchMode()">Create an account</button>
+    <button class="secondary" id="lq-reset"
+            onclick="lqResetPassword()">Forgot password?</button>
+
+    <p id="lq-auth-message" class="lq-auth-message"
+       role="status"></p>
+  </div>
+</div>
+
+<script>
+const LQ_URL =
+  'https://ycjjvgviuywshwjiygco.supabase.co';
+
+const LQ_PUBLIC_KEY =
+  'sb_publishable_WElVzin8wdR809bug9C-pA_GUppPXTM';
+
+const lqClient = window.supabase.createClient(
+  LQ_URL, LQ_PUBLIC_KEY
+);
+
+let lqUser = null;
+let lqReady = false;
+let lqMode = 'login';
+let lqTimer = null;
+let lqVersion = 0;
+let lqGeneration = 0;
+
+const lqOriginalSave = save;
+
+function lqMessage(message) {
+  document.getElementById('lq-auth-message')
+    .textContent = message;
+}
+
+function lqOpenAuth() {
+  document.getElementById('lq-auth-modal')
+    .classList.add('open');
+}
+
+function lqCloseAuth() {
+  document.getElementById('lq-auth-modal')
+    .classList.remove('open');
+  lqMessage('');
+}
+
+function lqSwitchMode() {
+  lqMode = lqMode === 'login' ? 'signup' : 'login';
+  document.getElementById('lq-auth-title')
+    .textContent = lqMode === 'signup'
+      ? '🚀 Join LinguaQuest'
+      : '🌍 Welcome back!';
+  document.getElementById('lq-submit')
+    .textContent = lqMode === 'signup'
+      ? 'Create account' : 'Log in';
+  document.getElementById('lq-switch')
+    .textContent = lqMode === 'signup'
+      ? 'Already have an account? Log in'
+      : 'Create an account';
+  lqMessage('');
+}
+
+document.getElementById('lq-auth-form')
+  .addEventListener('submit', async function(event) {
+    event.preventDefault();
+
+    const email = document.getElementById('lq-email').value.trim();
+    const password = document.getElementById('lq-password').value;
+    const button = document.getElementById('lq-submit');
+
+    button.disabled = true;
+    lqMessage('Please wait...');
+
+    try {
+      let result;
+
+      if (lqMode === 'signup') {
+        result = await lqClient.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo:
+              'https://lxkes-languages.github.io/linguaquest/'
+          }
+        });
+      } else {
+        result = await lqClient.auth.signInWithPassword({
+          email, password
+        });
+      }
+
+      if (result.error) throw result.error;
+
+      if (lqMode === 'signup' && !result.data.session) {
+        lqMessage(
+          'Check your email for a confirmation link, then log in.'
+        );
+      } else {
+        lqMessage('Signed in successfully!');
+        lqCloseAuth();
+      }
+    } catch (error) {
+      lqMessage(error.message || 'Something went wrong.');
+    } finally {
+      button.disabled = false;
+    }
+  });
+
+async function lqResetPassword() {
+  const email = document.getElementById('lq-email').value.trim();
+
+  if (!email) {
+    lqMessage('Enter your email address first.');
+    return;
+  }
+
+  const {error} = await lqClient.auth.resetPasswordForEmail(
+    email, {
+      redirectTo:
+        'https://lxkes-languages.github.io/linguaquest/'
+    }
+  );
+
+  lqMessage(error
+    ? error.message
+    : 'If an account exists, a reset email will be sent.');
+}
+
+async function lqUploadProgress() {
+  if (!lqUser || !lqReady) return;
+
+  const userId = lqUser.id;
+  const generation = lqGeneration;
+  const version = lqVersion;
+  const snapshot = JSON.parse(JSON.stringify(data));
+
+  const {error} = await lqClient
+    .from('user_progress')
+    .upsert({
+      user_id: userId,
+      progress: snapshot
+    }, {onConflict:'user_id'});
+
+  if (generation !== lqGeneration) return;
+
+  const label = document.getElementById('lq-user-label');
+
+  if (error) {
+    label.textContent = '⚠️ Cloud save failed';
+    console.error('LinguaQuest cloud save:', error);
+  } else {
+    label.textContent = '☁️ Progress synced';
+  }
+
+  if (lqVersion !== version && lqReady) {
+    lqQueueUpload();
+  }
+}
+
+function lqQueueUpload() {
+  if (!lqReady || !lqUser) return;
+  clearTimeout(lqTimer);
+  lqTimer = setTimeout(lqUploadProgress, 900);
+}
+
+// Keep existing local saving, and add cloud saving.
+save = function() {
+  lqOriginalSave();
+  lqVersion++;
+  lqQueueUpload();
+};
+
+async function lqLoadAccount(user) {
+  const generation = ++lqGeneration;
+  lqReady = false;
+  clearTimeout(lqTimer);
+  lqUser = user;
+
+  const label = document.getElementById('lq-user-label');
+  const button = document.getElementById('lq-account-button');
+
+  if (!user) {
+    // Restore the original guest progress after logout.
+    const guestBackup = localStorage.getItem('lq_guest_backup');
+
+    if (guestBackup !== null) {
+      try {
+        data = JSON.parse(guestBackup);
+        if (!data || typeof data !== 'object') data = {};
+      } catch(e) {
+        data = {};
+      }
+    }
+
+    data.langs ||= {};
+    lang = data.selected && LANGS[data.selected]
+      ? data.selected : 'es';
+
+    lqOriginalSave();
+    refresh();
+
+    label.textContent = '☁️ Progress saved on this device';
+    button.textContent = '🔐 Log in / Sign up';
+    button.onclick = lqOpenAuth;
+    return;
+  }
+
+  label.textContent = '☁️ Loading cloud progress...';
+  button.textContent = '🚪 Log out';
+  button.onclick = lqSignOut;
+
+  // Preserve guest progress before loading an account.
+  if (localStorage.getItem('lq_guest_backup') === null) {
+    localStorage.setItem(
+      'lq_guest_backup',
+      JSON.stringify(data)
+    );
+  }
+
+  const {data: row, error} = await lqClient
+    .from('user_progress')
+    .select('progress')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (generation !== lqGeneration) return;
+
+  if (error) {
+    label.textContent = '⚠️ Cloud loading failed';
+    console.error('LinguaQuest cloud load:', error);
+    return;
+  }
+
+  if (row && row.progress &&
+      typeof row.progress === 'object') {
+    data = row.progress;
+  } else {
+    // A brand-new account starts with existing guest progress.
+    try {
+      data = JSON.parse(
+        localStorage.getItem('lq_guest_backup') || '{}'
+      );
+    } catch(e) {
+      data = {};
+    }
+  }
+
+  data.langs ||= {};
+  lang = data.selected && LANGS[data.selected]
+    ? data.selected : 'es';
+
+  lqOriginalSave();
+  refresh();
+
+  lqReady = true;
+  label.textContent = '☁️ Signed in: ' + user.email;
+
+  // Create the first cloud record for a new account.
+  if (!row) lqQueueUpload();
+}
+
+async function lqSignOut() {
+  lqReady = false;
+  clearTimeout(lqTimer);
+
+  const {error} = await lqClient.auth.signOut();
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+}
+
+lqClient.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    setTimeout(async () => {
+      const newPassword = prompt(
+        'Enter your new LinguaQuest password (6+ characters):'
+      );
+
+      if (!newPassword) return;
+
+      if (newPassword.length < 6) {
+        alert('Password must contain at least 6 characters.');
+        return;
+      }
+
+      const {error} = await lqClient.auth.updateUser({
+        password: newPassword
+      });
+
+      alert(error ? error.message : 'Password updated!');
+    }, 0);
+  }
+
+  if (event === 'INITIAL_SESSION' ||
+      event === 'SIGNED_IN' ||
+      event === 'SIGNED_OUT') {
+    setTimeout(() => {
+      if (event === 'SIGNED_IN' && lqUser &&
+          session?.user?.id === lqUser.id) return;
+      lqLoadAccount(session?.user || null);
+    }, 0);
+  }
+});
+</script>
+
 </body>
 </html>
