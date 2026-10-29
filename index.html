@@ -1,0 +1,207 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6c45e8">
+<title>LinguaQuest 🌍</title>
+<style>
+:root{font-family:system-ui,-apple-system,sans-serif;color:#25204a;background:#f5f2ff}
+*{box-sizing:border-box}
+body{margin:0}
+header{background:linear-gradient(120deg,#6942e6,#9c5bff);color:white;padding:24px 18px;border-radius:0 0 28px 28px}
+main{max-width:720px;margin:auto;padding:16px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+h1{margin:0;font-size:27px}
+h2{margin:8px 0 14px;font-size:21px}
+p{line-height:1.5}
+.muted{color:#756e95}
+.panel{background:white;border-radius:22px;padding:18px;margin:14px 0;box-shadow:0 6px 22px #3d287b12}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;margin-top:18px}
+.stat{background:#ffffff24;padding:12px 7px;border-radius:14px;text-align:center;font-size:14px}
+.stat strong{display:block;font-size:23px}
+.languages{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px}
+.lang{background:#f7f4ff;color:#35235f;border:2px solid transparent;min-height:88px}
+.lang.active{border-color:#744ae9;background:#eae2ff}
+.flag{font-size:28px;display:block}
+button,select{font:inherit}
+button{cursor:pointer;border:0;border-radius:15px;padding:13px 15px;font-weight:700}
+button:focus-visible{outline:3px solid #ffbf36;outline-offset:2px}
+.primary{background:#7549e8;color:white}
+.secondary{background:#ede7ff;color:#5731b5}
+.actions{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.actions button{padding:16px 5px;font-size:14px}
+.actions span{display:block;font-size:24px;margin-bottom:5px}
+.progress{height:13px;background:#e8e2f5;border-radius:20px;overflow:hidden}
+.progress>div{height:100%;background:linear-gradient(90deg,#28c9b4,#8b65ee);width:0;transition:width .3s}
+.chip{display:inline-block;background:#f0e9ff;border-radius:20px;padding:7px 11px;font-size:13px;font-weight:700;color:#6140bc;margin:4px 4px 4px 0}
+.options{display:grid;gap:9px;margin-top:18px}
+.option{background:#f5f2ff;color:#302354;text-align:left;border:2px solid #e5dcff}
+.option.correct{background:#d9f9e9;border-color:#18a76b}
+.option.wrong{background:#ffe1e6;border-color:#e64d70}
+.bigword{font-size:35px;font-weight:800;text-align:center;margin:20px 0}
+.cardflip{background:linear-gradient(135deg,#f0e9ff,#dffbf5);min-height:210px;width:100%;border:2px dashed #aa94f2;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:28px;color:#33225e}
+.cardflip small{font-size:14px;margin-top:16px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.hide{display:none!important}
+.notice{padding:12px;border-radius:14px;background:#fff2d6;margin-top:12px}
+.nav{display:flex;gap:8px;flex-wrap:wrap}
+.nav button{flex:1}
+.tiny{font-size:12px}
+select{padding:12px;border:1px solid #ddd4f4;border-radius:12px;background:white;color:#33225e;width:100%}
+@media(max-width:370px){.actions{grid-template-columns:1fr 1fr}.languages{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body>
+<header>
+<div class="top"><div><h1>🌍 LinguaQuest</h1><div>Little lessons. Big adventures.</div></div><div style="font-size:34px">🚀</div></div>
+<div class="stats">
+<div class="stat">⭐ <strong id="xp">0</strong>XP</div>
+<div class="stat">🔥 <strong id="streak">0</strong>Day streak</div>
+<div class="stat">🏆 <strong id="level">1</strong>Level</div>
+</div>
+</header>
+<main>
+<section class="panel">
+<h2>Choose your language</h2>
+<div class="languages" id="languages"></div>
+<p class="muted tiny">Your progress is tracked separately for each language.</p>
+<label for="difficulty"><b>Difficulty</b></label>
+<select id="difficulty">
+<option value="0">🌱 Beginner</option>
+<option value="1">🌿 Intermediate</option>
+<option value="2">🌳 Advanced</option>
+</select>
+</section>
+<section class="panel">
+<div class="row"><h2 id="welcome">Your adventure</h2><span id="completed" class="chip">0 activities</span></div>
+<p class="muted">Complete lessons and quizzes to earn XP. Tap a flashcard to reveal its translation.</p>
+<div class="progress"><div id="bar"></div></div>
+<p id="goal" class="tiny muted">0 / 50 daily XP goal</p>
+<div class="actions">
+<button class="secondary" onclick="start('lesson')"><span>📖</span>Lesson</button>
+<button class="secondary" onclick="start('flash')"><span>🃏</span>Flashcards</button>
+<button class="secondary" onclick="start('quiz')"><span>🧠</span>Quiz</button>
+</div>
+</section>
+<section id="activity" class="panel hide" aria-live="polite"></section>
+<section class="panel">
+<h2>🏅 Your achievements</h2>
+<div id="badges"></div>
+<p class="tiny muted">Progress saves in this browser on this device. Private browsing or clearing website data can reset it.</p>
+</section>
+</main>
+<script>
+const LANGS={
+es:{name:'Spanish',flag:'🇪🇸',sets:[
+[['hello','hola'],['goodbye','adiós'],['thank you','gracias'],['please','por favor'],['water','agua'],['food','comida'],['friend','amigo'],['house','casa'],['book','libro'],['good morning','buenos días']],
+[['I would like','me gustaría'],['Where is the station?','¿Dónde está la estación?'],['How much does it cost?','¿Cuánto cuesta?'],['I am learning','estoy aprendiendo'],['tomorrow','mañana'],['yesterday','ayer'],['because','porque'],['although','aunque'],['I need help','necesito ayuda'],['Can you repeat?','¿Puedes repetir?']],
+[['nevertheless','sin embargo'],['on the other hand','por otro lado'],['to achieve','lograr'],['challenge','desafío'],['awareness','conciencia'],['to improve','mejorar'],['despite','a pesar de'],['in the long run','a largo plazo'],['to take into account','tener en cuenta'],['it is worth it','vale la pena']]
+]},
+fr:{name:'French',flag:'🇫🇷',sets:[
+[['hello','bonjour'],['goodbye','au revoir'],['thank you','merci'],['please','s’il vous plaît'],['water','eau'],['food','nourriture'],['friend','ami'],['house','maison'],['book','livre'],['good morning','bonjour']],
+[['I would like','je voudrais'],['Where is the station?','Où est la gare ?'],['How much does it cost?','Combien ça coûte ?'],['I am learning','j’apprends'],['tomorrow','demain'],['yesterday','hier'],['because','parce que'],['although','bien que'],['I need help','j’ai besoin d’aide'],['Can you repeat?','Pouvez-vous répéter ?']],
+[['nevertheless','néanmoins'],['on the other hand','en revanche'],['to achieve','accomplir'],['challenge','défi'],['awareness','conscience'],['to improve','améliorer'],['despite','malgré'],['in the long run','à long terme'],['to take into account','prendre en compte'],['it is worth it','ça en vaut la peine']]
+]},
+de:{name:'German',flag:'🇩🇪',sets:[
+[['hello','hallo'],['goodbye','auf Wiedersehen'],['thank you','danke'],['please','bitte'],['water','Wasser'],['food','Essen'],['friend','Freund'],['house','Haus'],['book','Buch'],['good morning','guten Morgen']],
+[['I would like','ich hätte gern'],['Where is the station?','Wo ist der Bahnhof?'],['How much does it cost?','Wie viel kostet das?'],['I am learning','ich lerne'],['tomorrow','morgen'],['yesterday','gestern'],['because','weil'],['although','obwohl'],['I need help','ich brauche Hilfe'],['Can you repeat?','Können Sie das wiederholen?']],
+[['nevertheless','dennoch'],['on the other hand','andererseits'],['to achieve','erreichen'],['challenge','Herausforderung'],['awareness','Bewusstsein'],['to improve','verbessern'],['despite','trotz'],['in the long run','langfristig'],['to take into account','berücksichtigen'],['it is worth it','es lohnt sich']]
+]},
+it:{name:'Italian',flag:'🇮🇹',sets:[
+[['hello','ciao'],['goodbye','arrivederci'],['thank you','grazie'],['please','per favore'],['water','acqua'],['food','cibo'],['friend','amico'],['house','casa'],['book','libro'],['good morning','buongiorno']],
+[['I would like','vorrei'],['Where is the station?','Dov’è la stazione?'],['How much does it cost?','Quanto costa?'],['I am learning','sto imparando'],['tomorrow','domani'],['yesterday','ieri'],['because','perché'],['although','sebbene'],['I need help','ho bisogno di aiuto'],['Can you repeat?','Può ripetere?']],
+[['nevertheless','tuttavia'],['on the other hand','d’altra parte'],['to achieve','raggiungere'],['challenge','sfida'],['awareness','consapevolezza'],['to improve','migliorare'],['despite','nonostante'],['in the long run','a lungo termine'],['to take into account','tenere conto di'],['it is worth it','ne vale la pena']]
+]},
+pt:{name:'Portuguese',flag:'🇵🇹',sets:[
+[['hello','olá'],['goodbye','adeus'],['thank you','obrigado'],['please','por favor'],['water','água'],['food','comida'],['friend','amigo'],['house','casa'],['book','livro'],['good morning','bom dia']],
+[['I would like','gostaria de'],['Where is the station?','Onde fica a estação?'],['How much does it cost?','Quanto custa?'],['I am learning','estou a aprender'],['tomorrow','amanhã'],['yesterday','ontem'],['because','porque'],['although','embora'],['I need help','preciso de ajuda'],['Can you repeat?','Pode repetir?']],
+[['nevertheless','no entanto'],['on the other hand','por outro lado'],['to achieve','alcançar'],['challenge','desafio'],['awareness','consciência'],['to improve','melhorar'],['despite','apesar de'],['in the long run','a longo prazo'],['to take into account','ter em conta'],['it is worth it','vale a pena']]
+]}};
+const KEY='linguaquest_v1';
+let data;
+try{data=JSON.parse(localStorage.getItem(KEY))||{}}catch(e){data={}}
+data.langs ||= {};
+let lang=data.selected&&LANGS[data.selected]?data.selected:'es',mode='',index=0,score=0,questions=[],revealed=false,answered=false;
+const $=id=>document.getElementById(id);
+const today=()=>new Date().toLocaleDateString('en-CA');
+function stats(){return data.langs[lang] ||= {xp:0,activities:0,streak:0,last:'',todayXP:0,day:''}}
+function save(){data.selected=lang;try{localStorage.setItem(KEY,JSON.stringify(data))}catch(e){}}
+function escapeHTML(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function refresh(){
+const s=stats();
+if(s.day!==today()){s.day=today();s.todayXP=0;save()}
+$('languages').innerHTML=Object.entries(LANGS).map(([k,v])=>`<button class="lang ${k===lang?'active':''}" onclick="choose('${k}')" aria-pressed="${k===lang}"><span class="flag">${v.flag}</span>${v.name}</button>`).join('');
+$('xp').textContent=s.xp;
+$('level').textContent=Math.floor(s.xp/100)+1;
+$('streak').textContent=s.streak;
+$('completed').textContent=s.activities+' activities';
+$('bar').style.width=Math.min(100,s.todayXP/50*100)+'%';
+$('goal').textContent=s.todayXP+' / 50 daily XP goal';
+$('welcome').textContent=LANGS[lang].flag+' Learn '+LANGS[lang].name;
+$('badges').innerHTML=[['🌱 First Steps',s.activities>=1],['🔥 3-Day Streak',s.streak>=3],['⭐ 100 XP',s.xp>=100],['🏆 500 XP',s.xp>=500]].map(([n,ok])=>`<span class="chip" style="opacity:${ok?1:.35}">${n}</span>`).join('')
+}
+function choose(k){lang=k;save();$('activity').classList.add('hide');refresh()}
+function award(n){
+let s=stats(),t=today();
+if(s.last!==t){
+let yesterday=new Date();yesterday.setDate(yesterday.getDate()-1);
+let y=yesterday.toLocaleDateString('en-CA');
+s.streak=s.last===y?s.streak+1:1;s.last=t
+}
+s.xp+=n;s.todayXP+=n;s.activities++;save();refresh()
+}
+function pool(){return LANGS[lang].sets[Number($('difficulty').value)]}
+function start(m){
+mode=m;index=0;score=0;answered=false;revealed=false;
+questions=[...pool()].sort(()=>Math.random()-.5).slice(0,5);
+$('activity').classList.remove('hide');render();
+$('activity').scrollIntoView({behavior:'smooth',block:'start'})
+}
+function render(){
+const a=$('activity');
+if(index>=questions.length){
+let points=mode==='quiz'?score*10:mode==='lesson'?20:10;
+award(points);
+a.innerHTML=`<h2>🎉 Activity complete!</h2><p>You finished ${questions.length} ${mode==='flash'?'flashcards':mode==='lesson'?'lesson words':'quiz questions'}${mode==='quiz'?' and got '+score+' correct':''}.</p><p class="chip">+${points} XP earned</p><div class="nav"><button class="primary" onclick="start('${mode}')">Try again</button><button class="secondary" onclick="closeActivity()">Back to dashboard</button></div>`;
+return
+}
+let [en,translation]=questions[index];
+let heading=`<div class="row"><b>${mode==='flash'?'🃏 Flashcards':mode==='quiz'?'🧠 Quiz':'📖 Vocabulary lesson'}</b><span class="chip">${index+1} / ${questions.length}</span></div>`;
+if(mode==='flash'){
+a.innerHTML=heading+`<button class="cardflip" onclick="flip()"><span>${escapeHTML(revealed?translation:en)}</span><small>${revealed?'Tap to see English':'Tap to reveal translation'}</small></button><p class="muted tiny">Think of the translation before revealing it.</p><button class="primary" onclick="next()">${index===questions.length-1?'Finish':'Next card →'}</button>`
+}else if(mode==='lesson'){
+a.innerHTML=heading+`<p class="muted">Learn this expression:</p><div class="bigword">${escapeHTML(en)}</div><div class="panel" style="background:#f1edff;text-align:center"><div class="muted">${LANGS[lang].name}</div><h2>${escapeHTML(translation)}</h2></div><button class="secondary" onclick="speak()">🔊 Listen</button> <button class="primary" onclick="next()">${index===questions.length-1?'Finish lesson':'Got it →'}</button>`
+}else{
+let wrong=pool().map(x=>x[1]).filter(x=>x!==translation).sort(()=>Math.random()-.5).slice(0,3);
+let opts=[translation,...wrong].sort(()=>Math.random()-.5);
+a.innerHTML=heading+`<p class="muted">Choose the correct translation:</p><div class="bigword">${escapeHTML(en)}</div><div class="options">${opts.map((v,i)=>`<button class="option" data-choice="${i}" onclick="answer(${i})">${escapeHTML(v)}</button>`).join('')}</div><div id="feedback" aria-live="polite"></div><button id="nextbtn" class="primary hide" onclick="next()">${index===questions.length-1?'See results':'Next question →'}</button>`;
+a.dataset.answer=translation
+}
+}
+function flip(){revealed=!revealed;render()}
+function next(){index++;revealed=false;answered=false;render()}
+function answer(i){
+if(answered)return;
+answered=true;
+const opts=[...document.querySelectorAll('.option')],chosen=opts[i].textContent,correct=chosen===$('activity').dataset.answer;
+if(correct)score++;
+opts.forEach(b=>{b.disabled=true;if(b.textContent===$('activity').dataset.answer)b.classList.add('correct')});
+if(!correct)opts[i].classList.add('wrong');
+$('feedback').innerHTML=`<p class="notice">${correct?'✅ Correct!':'💡 Correct answer: '+escapeHTML($('activity').dataset.answer)}</p>`;
+$('nextbtn').classList.remove('hide')
+}
+function speak(){
+let v=questions[index][1];
+if(!('speechSynthesis' in window)){alert('Audio is unavailable in this browser.');return}
+speechSynthesis.cancel();
+let u=new SpeechSynthesisUtterance(v);
+u.lang={es:'es-ES',fr:'fr-FR',de:'de-DE',it:'it-IT',pt:'pt-PT'}[lang];
+u.rate=.85;speechSynthesis.speak(u)
+}
+function closeActivity(){$('activity').classList.add('hide')}
+refresh();
+</script>
+</body>
+</html>
