@@ -1118,5 +1118,305 @@ lqClient.auth.onAuthStateChange((event, session) => {
 </script>
 <!-- End Country Adventures -->
 
+<!-- LinguaQuest Travelling Explorer -->
+<style>
+.lq-explorer-customiser {
+  background:linear-gradient(135deg,#f1eaff,#e4fff8);
+  border:2px solid #e4d7ff;
+  border-radius:22px;
+  padding:16px;
+  margin:14px 0;
+}
+.lq-explorer-customiser h3 {
+  color:#5636a9;
+  margin:0 0 8px;
+}
+.lq-explorer-preview {
+  background:white;
+  border-radius:17px;
+  padding:13px;
+  text-align:center;
+  margin:10px 0;
+}
+.lq-explorer-preview .figure {
+  font-size:43px;
+}
+.lq-explorer-options {
+  display:flex;
+  gap:7px;
+  flex-wrap:wrap;
+  margin:8px 0 14px;
+}
+.lq-explorer-options button {
+  background:white;
+  border:2px solid #e2d8fa;
+  font-size:24px;
+  padding:8px 11px;
+}
+.lq-explorer-options button.chosen {
+  border-color:#8052e8;
+  background:#e8dcff;
+}
+.lq-traveller {
+  position:absolute;
+  z-index:650;
+  width:53px;
+  height:53px;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  background:#fff;
+  border:3px solid #8150ec;
+  border-radius:50%;
+  box-shadow:0 5px 15px #31205b55;
+  transform:translate(-50%,-110%);
+  pointer-events:none;
+  transition:left 1.5s ease-in-out,top 1.5s ease-in-out;
+}
+.lq-traveller-face {
+  font-size:29px;
+}
+.lq-traveller-bag {
+  position:absolute;
+  right:-8px;
+  bottom:-7px;
+  font-size:20px;
+}
+.lq-traveller-extra {
+  position:absolute;
+  left:-8px;
+  bottom:-7px;
+  font-size:19px;
+}
+.lq-traveller-label {
+  position:absolute;
+  top:-23px;
+  background:#6540cc;
+  color:white;
+  font-size:10px;
+  padding:4px 7px;
+  border-radius:10px;
+  white-space:nowrap;
+}
+@media(prefers-reduced-motion:reduce){
+  .lq-traveller {transition:none}
+}
+</style>
+
+<script>
+(function(){
+  const faces=[
+    '🧑‍🚀','🧑‍🎨','🧑‍🦱',
+    '👩‍🦰','🧑‍🦳','🧑‍🦰'
+  ];
+  const outfits=['🎒','🧥','👕','🥾'];
+  const accessories=['🧢','📷','🧭','🕶️'];
+
+  const countryMap=document.getElementById(
+    'lq-travel-map'
+  );
+
+  if(!countryMap) return;
+
+  const panel=document.createElement('div');
+  panel.className='lq-explorer-customiser';
+  panel.innerHTML=`
+    <h3>🎒 My Travelling Explorer</h3>
+    <p class="tiny muted">
+      Customise your explorer for your journey!
+    </p>
+    <div id="lq-explorer-preview"
+         class="lq-explorer-preview"></div>
+    <b>Choose your character</b>
+    <div id="lq-face-options"
+         class="lq-explorer-options"></div>
+    <b>Choose an outfit</b>
+    <div id="lq-outfit-options"
+         class="lq-explorer-options"></div>
+    <b>Choose an accessory</b>
+    <div id="lq-extra-options"
+         class="lq-explorer-options"></div>
+    <p class="tiny muted">
+      Your character choices save automatically.
+    </p>
+  `;
+
+  countryMap.before(panel);
+
+  const traveller=document.createElement('div');
+  traveller.className='lq-traveller';
+  traveller.setAttribute('aria-hidden','true');
+  traveller.style.display='none';
+  countryMap.appendChild(traveller);
+
+  function getAvatar(){
+    if(!data.explorer ||
+       typeof data.explorer!=='object'){
+      data.explorer={face:0,outfit:0,extra:0};
+    }
+    return data.explorer;
+  }
+
+  function optionButtons(id,items,key){
+    const chosen=getAvatar()[key] || 0;
+
+    document.getElementById(id).innerHTML=
+      items.map((item,i)=>`
+        <button
+          type="button"
+          class="${chosen===i?'chosen':''}"
+          onclick="lqChooseExplorer('${key}',${i})"
+          aria-label="${key} option ${i+1}"
+          aria-pressed="${chosen===i}">
+          ${item}
+        </button>
+      `).join('');
+  }
+
+  function renderExplorer(){
+    const avatar=getAvatar();
+    const face=faces[avatar.face] || faces[0];
+    const outfit=outfits[avatar.outfit] || outfits[0];
+    const extra=accessories[avatar.extra] ||
+      accessories[0];
+
+    document.getElementById('lq-explorer-preview')
+      .innerHTML=`
+        <div class="figure">
+          ${face} ${outfit} ${extra}
+        </div>
+        <b>Your Adventure Companion</b>
+      `;
+
+    optionButtons(
+      'lq-face-options',faces,'face'
+    );
+    optionButtons(
+      'lq-outfit-options',outfits,'outfit'
+    );
+    optionButtons(
+      'lq-extra-options',accessories,'extra'
+    );
+
+    traveller.innerHTML=`
+      <span class="lq-traveller-label">
+        Your explorer
+      </span>
+      <span class="lq-traveller-face">${face}</span>
+      <span class="lq-traveller-bag">${outfit}</span>
+      <span class="lq-traveller-extra">${extra}</span>
+    `;
+  }
+
+  window.lqChooseExplorer=function(key,index){
+    const choices={
+      face:faces,
+      outfit:outfits,
+      extra:accessories
+    };
+
+    if(!choices[key] ||
+       !choices[key][index]) return;
+
+    getAvatar()[key]=index;
+    save();
+    renderExplorer();
+  };
+
+  let previousLanguage=null;
+  let previousCity=null;
+
+  function positionTraveller(){
+    const pins=[
+      ...countryMap.querySelectorAll(
+        '.leaflet-marker-icon .lq-city-pin'
+      )
+    ];
+
+    if(!pins.length) {
+      traveller.style.display='none';
+      return;
+    }
+
+    const completed=Array.isArray(stats().travelCities)
+      ? stats().travelCities : [];
+
+    // Your explorer stands at the most recently
+    // reached city, starting at city zero.
+    let city=0;
+    for(let i=0;i<pins.length;i++){
+      if(completed.includes(i)) city=i;
+      else break;
+    }
+
+    const target=pins[city];
+    if(!target) return;
+
+    const pinRect=target.getBoundingClientRect();
+    const mapRect=countryMap.getBoundingClientRect();
+
+    const x=pinRect.left-mapRect.left+
+      pinRect.width/2;
+    const y=pinRect.top-mapRect.top+
+      pinRect.height/2;
+
+    if(previousLanguage!==lang){
+      traveller.style.transition='none';
+      previousLanguage=lang;
+      previousCity=null;
+    } else {
+      traveller.style.transition='';
+    }
+
+    traveller.style.display='flex';
+    traveller.style.left=x+'px';
+    traveller.style.top=y+'px';
+
+    previousCity=city;
+  }
+
+  // Watch Leaflet's city markers so the explorer
+  // follows map movement, zooming and new stages.
+  const markerPane=countryMap.querySelector(
+    '.leaflet-marker-pane'
+  );
+
+  if(markerPane){
+    const observer=new MutationObserver(()=>{
+      requestAnimationFrame(positionTraveller);
+    });
+
+    observer.observe(markerPane,{
+      subtree:true,
+      childList:true,
+      attributes:true,
+      attributeFilter:['style','class']
+    });
+  }
+
+  countryMap.addEventListener(
+    'touchmove',positionTraveller,{passive:true}
+  );
+  countryMap.addEventListener(
+    'pointermove',positionTraveller,{passive:true}
+  );
+  window.addEventListener('resize',positionTraveller);
+
+  // Refresh avatar when cloud progress loads
+  // or when another language is selected.
+  const previousRefresh=refresh;
+
+  refresh=function(){
+    previousRefresh();
+    renderExplorer();
+    requestAnimationFrame(positionTraveller);
+  };
+
+  renderExplorer();
+  requestAnimationFrame(positionTraveller);
+})();
+</script>
+<!-- End Travelling Explorer -->
+
 </body>
 </html>
